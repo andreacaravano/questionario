@@ -1,0 +1,671 @@
+﻿<!DOCTYPE html>
+<!--
+             Alunno: Caravano Andrea
+             Classe: 4DIN
+
+    Anno scolastico: 2018-2019
+    Ultima modifica: 14/07/2019
+          Revisione: 25/02/2024
+-->
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Simulazione - Test di ammissione ad Ingegneria</title>
+    <!-- Libreria MathJax -->
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML"></script>
+    <style type="text/css">
+        h1 {
+            text-align: center;
+        }
+
+        .nonrispondo {
+            text-align: right;
+            float: right;
+        }
+
+        table.tab-risposte {
+            margin-left: 5%;
+        }
+
+            table.tab-risposte td {
+                padding: 0.5rem 1rem;
+            }
+
+        .valuta {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .centrale {
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn-slider {
+            width: 80%;
+        }
+
+        .risposte-utente {
+            font-size: 1.2em;
+        }
+    </style>
+    <script type="text/javascript" src="materiale-test-caravano/domande.js"></script>
+    <script type="text/javascript">
+            let nome, cognome;
+            let estratte = [];
+            const NSINGOLE = 4;
+            const NMULTIPLE = 4;
+            const NASSOCIAZIONE = 2;
+            const NDOMANDE = 10;
+            let risposteUtente = ['I', 'I', 'I', 'I', 'N'.repeat(5), 'N'.repeat(5), 'N'.repeat(5), 'N'.repeat(5), '0'.repeat(4), '0'.repeat(4)];
+            
+            let caricamentoCompleto = false;
+            
+            window.addEventListener('load', function () {
+                setTimeout(() => {
+                    ricaricaMatematica();
+                    caricamentoCompleto = true;
+                }, 5000);
+            });
+
+            function avviaEstrazione() {
+                for (let i = 0; i < NSINGOLE; i++) {
+                    let estrazione = Math.floor(Math.random() * CONTASINGOLE);
+                    while (estratte.includes(estrazione))
+                        estrazione = Math.floor(Math.random() * CONTASINGOLE);
+                    estratte[i] = estrazione;
+                }
+                for (let i = NSINGOLE; i < NSINGOLE + NMULTIPLE; i++) {
+                    let estrazione = Math.floor(Math.random() * CONTAMULTIPLE);
+                    let estratteLocale = estratte.slice(3, 7);
+                    while (estratteLocale.includes(estrazione))
+                        estrazione = Math.floor(Math.random() * CONTAMULTIPLE);
+                    estratte[i] = estrazione;
+                }
+                for (let i = NSINGOLE + NMULTIPLE; i < NSINGOLE + NMULTIPLE + NASSOCIAZIONE; i++) {
+                    let estrazione = Math.floor(Math.random() * CONTAASSOCIAZIONE);
+                    let estratteLocale = estratte.slice(8, 9);
+                    while (estratteLocale.includes(estrazione))
+                        estrazione = Math.floor(Math.random() * CONTAASSOCIAZIONE);
+                    estratte[i] = estrazione;
+                }
+                caricaDomanda(0);
+                $('#benvenuto').modal('show');
+                $('#benvenuto').on('hidden.bs.modal', function () {
+                    if (document.nominativo.nome.value.length == 0 || document.nominativo.cognome.value.length == 0 || document.nominativo.nome.value[0] == " " || document.nominativo.cognome.value[0] == " ")
+                        $('#benvenuto').modal('show');
+                    else {
+                        nome = document.nominativo.nome.value;
+                        cognome = document.nominativo.cognome.value;
+                        document.getElementById("nomeCandidato").innerHTML = cognome + " " + nome;
+                        document.getElementById("idCandidato").innerHTML += Math.floor(Math.random() * 1000000) + 10000;
+                        conteggioTempo();
+                    }
+                });
+            }
+
+            function caricaDomanda(pos) {
+                aggiornaNumero(pos + 1);
+                if (pos + 1 == 10) {
+                    document.getElementById("btnConferma").onclick = function () {
+                        registraRisposta();
+                        valuta();
+                    };
+                    document.getElementById("btnConferma").innerHTML = "Valuta questionario";
+                } else {
+                    document.getElementById("btnConferma").onclick = function () {
+                        registraRisposta();
+                    };
+                    document.getElementById("btnConferma").innerHTML = "✔ Conferma e vai alla successiva";
+                }
+                let arrayDomande = [];
+                let arrayRisposte = [];
+                let numRisposte = 0;
+                if (pos < 4) {
+                    numRisposte = 5;
+                    scriviRS();
+                    arrayDomande = domandeSingola;
+                    arrayRisposte = risposteSingola;
+                } else if (pos > 3 && pos < 8) {
+                    numRisposte = 5;
+                    scriviRM();
+                    arrayDomande = domandeMultipla;
+                    arrayRisposte = risposteMultipla;
+                } else {
+                    numRisposte = 4;
+                    scriviAR();
+                    arrayDomande = domandeAssociazione;
+                    arrayRisposte = risposteAssociazione;
+                }
+                document.getElementById("testoDomanda").innerHTML = arrayDomande[estratte[pos]];
+                let indiceRisposte = ["A. ", "B. ", "C. ", "D. ", "E. "];
+                for (let i = 1; i <= numRisposte; i++) {
+                    document.getElementById("ris" + i).innerHTML = indiceRisposte[i - 1] + arrayRisposte[estratte[pos]][i - 1];
+                }
+                if (numRisposte == 4)
+                    document.getElementById("ris5").innerHTML = "";
+                
+                if (caricamentoCompleto)
+                    ricaricaMatematica();
+            }
+
+            function ricaricaMatematica() {
+                MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+            }
+
+            function rimuoviRM(nomeRisposte) {
+                let f = document.forms["test"];
+                let radio = f[nomeRisposte];
+                for (let i = 0; i < radio.length; i++) {
+                    radio[i].indeterminate = true;
+                }
+            }
+
+            function rimuoviRS(nomeRisposte) {
+                let f = document.forms["test"];
+                let radio = f[nomeRisposte];
+                for (let i = 0; i < radio.length; i++) {
+                    radio[i].checked = false;
+                }
+            }
+
+            function rimuoviAR() {
+                let f = document.forms["test"];
+                f["ar1"].selectedIndex = -1;
+                f["ar2"].selectedIndex = -1;
+                f["ar3"].selectedIndex = -1;
+                f["ar4"].selectedIndex = -1;
+            }
+
+            function puntiRM(rispUtente, risposteEsatte) {
+                if (rispUtente == 'I')
+                    return 0;
+                let cErrori = 0;
+                let modulo = document.forms["test"];
+                let lun = risposteEsatte.length;
+                if (rispUtente.includes('I')) {
+                    cErrori = -1;
+                    lun = 0;
+                }
+                for (let i = 0; i < lun; i++) {
+                    if (risposteEsatte[i] != rispUtente[i])
+                        cErrori++;
+                }
+                let punti = 0;
+                if (cErrori == -1)
+                    return 0;
+                if (cErrori <= 2)
+                    punti = 1.5 - (cErrori * 0.5);
+                else
+                    punti = -0.25;
+                return punti;
+            }
+
+            function puntiRS(rispUtente, rispEsatta) {
+                if (rispUtente == rispEsatta)
+                    return 1;
+                else if (rispUtente == 'I')
+                    return 0;
+                else
+                    return -0.25;
+            }
+
+            function puntiAR(rispUtente, rispEsatta) {
+                if (rispUtente != rispEsatta)
+                    return 0;
+                else
+                    return 1;
+            }
+
+            function valuta() {
+                const MAX_PUNTI = 12;
+                let totalePunti = 0;
+                for (let i = 0; i < NDOMANDE; i++) {
+                    let puntiLocale = 0;
+                    if (i <= 3) {
+                        if (risposteUtente[i] == undefined || risposteUtente[i] == -1)
+                            risposteUtente[i] = 'I';
+                        puntiLocale = puntiRS(risposteUtente[i], corretteSingola[estratte[i]]);
+                        totalePunti += puntiLocale;
+                    } else if (i > 3 && i < 8) {
+                        if (risposteUtente[i] == undefined || risposteUtente[i] == -1)
+                            risposteUtente[i] = 'I';
+                        puntiLocale = puntiRM(risposteUtente[i], corretteMultipla[estratte[i]]);
+                        totalePunti += puntiLocale;
+                    } else {
+                        puntiLocale = puntiAR(risposteUtente[i], corretteAssociazione[estratte[i]]);
+                        totalePunti += puntiLocale;
+                    }
+                    let punti = document.getElementById("punti" + (i + 1));
+                    punti.innerHTML = ' ' + puntiLocale + ' ';
+                    punti.style.display = "block";
+                }
+                let v = document.getElementById("visore");
+                let testoVisore = "";
+                testoVisore = "<p>Punteggio ottenuto: <strong>" + totalePunti + "/" + MAX_PUNTI + "&nbsp;<span class='"+(((totalePunti/MAX_PUNTI)*100)>=60?"text-success":"text-danger")+"'>&#40;"+((totalePunti/MAX_PUNTI)*100).toFixed(2)+"%&#41;"+"</span></strong></p>";
+                testoVisore += "<p>Hai terminato il test. <br><strong>È consigliato ripetere il test almeno 3 volte</strong>, dal momento che le domande vengono estratte in forma casuale.</p><p>Se desideri visualizzare le soluzioni e lo svolgimento degli esercizi, <a href='materiale-test-caravano/soluzioni-test.pdf'>CLICCA QUI</a></p>";
+                v.innerHTML = testoVisore;
+                $('#dialogo').modal('show');
+            }
+
+            function scriviRS() {
+                let valoreRisposte = ["A", "B", "C", "D", "E"];
+                let nQuesito = (document.getElementById("nQuesito").innerHTML) - 1;
+                for (let i = 1; i <= 5; i++) {
+                    document.getElementById("cas" + i).innerHTML = "<input type='radio' name='r1' value='" + valoreRisposte[i - 1] + "' " + ((risposteUtente[nQuesito] == i - 1) ? 'checked' : '') + "/>";
+                }
+                document.getElementById("nonRispondo").onclick = function () {
+                    rimuoviRS("r1");
+                };
+            }
+
+            function scriviRM() {
+                let valoreRisposte = ["A", "B", "C", "D", "E"];
+                let nQuesito = (document.getElementById("nQuesito").innerHTML) - 1;
+                for (let i = 1; i <= 5; i++) {
+                    document.getElementById("cas" + i).innerHTML = "<input type='checkbox' name='rm1' value='" + valoreRisposte[i - 1] + "'" + (((risposteUtente[nQuesito])[i - 1] == 'V') ? 'checked' : '') + " />";
+                }
+                for (let i = 1; i <= 5; i++) {
+                    let cb = document.forms["test"]['rm1'];
+                    cb[i - 1].indeterminate = (((risposteUtente[nQuesito])[i - 1] == 'I') ? true : false);
+                }
+                document.getElementById("nonRispondo").onclick = function () {
+                    rimuoviRM("rm1");
+                };
+            }
+
+            function scriviAR() {
+                for (let i = 1; i <= 4; i++) {
+                    let select = "";
+                    select += "<select name='ar" + i + "'>";
+                    for (let j = 1; j <= 5; j++) {
+                        select += "<option>" + j + "</option>";
+                    }
+                    select += "</select>";
+                    document.getElementById("cas" + i).innerHTML = select;
+                }
+                let nQuesito = (document.getElementById("nQuesito").innerHTML) - 1;
+                let f = document.forms["test"];
+                for (let i = 1; i <= 4; i++) {
+                    f["ar" + i].selectedIndex = ((risposteUtente[nQuesito])[i - 1]) - 1;
+                }
+                document.getElementById("cas5").innerHTML = "";
+                document.getElementById("nonRispondo").onclick = function () {
+                    rimuoviAR();
+                };
+            }
+
+            function aggiornaNumero(nuovo) {
+                document.getElementById("nQuesito").innerHTML = nuovo;
+            }
+
+            function indietroDomanda() {
+                let nQuesito = document.getElementById("nQuesito").innerHTML;
+                caricaDomanda((((nQuesito - 2) < 0) ? 0 : nQuesito - 2));
+            }
+
+            function avanzaDomanda() {
+                let nQuesito = (document.getElementById("nQuesito").innerHTML) - 1;
+                caricaDomanda((nQuesito + 1) % NDOMANDE);
+            }
+
+            function registraRisposta() {
+                let nQuesito = (document.getElementById("nQuesito").innerHTML) - 1;
+                if (nQuesito <= 3) {
+                    let radio = document.forms["test"]['r1'];
+                    let c = 0;
+                    for (let i = 0; i < radio.length; i++) {
+                        if (radio[i].checked) {
+                            risposteUtente[nQuesito] = i;
+                            c++;
+                        }
+                    }
+                    if (c == 0) {
+                        risposteUtente[nQuesito] = -1;
+                    }
+                    document.getElementById("risUtente" + nQuesito).innerHTML = ritornaLettera(risposteUtente[nQuesito]);
+                } else if (nQuesito > 3 && nQuesito <= 7) {
+                    risposteUtente[nQuesito] = "";
+                    let cb = document.forms["test"]['rm1'];
+                    document.getElementById("risUtente" + nQuesito).innerHTML = "";
+                    let rispostaLocale = "";
+                    for (let i = 0; i < cb.length; i++) {
+                        if (cb[i].checked == true) {
+                            risposteUtente[nQuesito] += 'V';
+                            rispostaLocale += ritornaLettera(i);
+                            continue;
+                        }
+                        if (cb[i].indeterminate) {
+                            risposteUtente[nQuesito] = 'I'.repeat(5);
+                            rispostaLocale = "I";
+                            continue;
+                        }
+                        if (cb[i].checked == false) {
+                            risposteUtente[nQuesito] += 'F';
+                            continue;
+                        }
+                    }
+                    document.getElementById("risUtente" + nQuesito).innerHTML = ((rispostaLocale).includes('I') ? 'I' : rispostaLocale);
+                } else {
+                    risposteUtente[nQuesito] = "";
+                    document.getElementById("risUtente" + nQuesito).innerHTML = "";
+                    for (let i = 1; i <= 4; i++) {
+                        risposteUtente[nQuesito] += (document.forms["test"]["ar" + i].selectedIndex + 1).toString();
+                    }
+                    document.getElementById("risUtente" + nQuesito).innerHTML += ' ' + ((risposteUtente[nQuesito].includes(0)) ? 'I' : risposteUtente[nQuesito]);
+                }
+                avanzaDomanda();
+            }
+
+            function ritornaLettera(numero) {
+                if (numero == 0)
+                    return 'A';
+                else if (numero == 1)
+                    return 'B';
+                else if (numero == 2)
+                    return 'C';
+                else if (numero == 3)
+                    return 'D';
+                else if (numero == 4)
+                    return 'E';
+                else
+                    return 'I';
+            }
+
+            function conteggioTempo() {
+                let timerScaduto = false;
+                let scadenza = 30 * 60 * 1000;
+                let timer = setInterval(function () {
+                    scadenza -= 1000;
+                    if (timerScaduto) {
+                        scadenza = 0;
+                    }
+                    let minuti = Math.floor(scadenza / (60 * 1000));
+                    let secondi = Math.floor((scadenza - (minuti * 60 * 1000)) / 1000);
+                    if (secondi < 10) {
+                        secondi = "0" + secondi.toString();
+                    }
+                    document.getElementById("tempoRimanente").innerHTML = minuti + " : " + secondi + ((((timerScaduto) == true) ? " !" : ""));
+
+                    if (scadenza <= 0 && timerScaduto == false) {
+                        $("#tempoScaduto").modal('show');
+                        timerScaduto = true;
+                    }
+                }, 1000);
+            }</script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+
+<body onload="avviaEstrazione();">
+    <div class="container">
+        <h1 style="padding-top: 20px">Simulazione - Test di ammissione ad Ingegneria</h1>
+        <h6 class="centrale" id="nomeCandidato">N.D.</h6>
+        <h6 class="centrale" id="idCandidato">Codice identificativo: </h6>
+        <h6 class="centrale">
+            Data:
+            <script>let data = new Date().toJSON().slice(0, 10);
+                    data = data.split("-");
+                    document.write(data[2] + "/" + data[1] + "/" + data[0]);</script>
+        </h6>
+            <!-- Slider risposte -->
+            <table style="border: 0px; text-align: center; width: 100%; height: 50px;">
+                <tr>
+                    <td colspan="12">
+                        <div class="alert alert-warning fade in alert-dismissible show" style="margin-top:18px;">
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true" style="font-size:20px">&times;</span>
+                            </button>
+                            <strong>Attenzione!</strong> Il colore verde indica le risposte confermate e non
+                            necessariamente la correttezza.
+                            <br>
+                            <strong>
+                                N.B.: Il punteggio viene visualizzato per le singole risposte solo quando viene
+                                terminato il
+                                questionario.
+                            </strong>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="10" style="padding-bottom: 1.5em">
+                        <button class="btn btn-info" onclick="location.reload();">
+                            Riavvia la simulazione
+                        </button>
+                    </td>
+                    <td colspan="2" style="padding-bottom: 1.5em">
+                        <span style="font-size: 0.6em;">
+                            Tempo rimanente:
+                        </span>
+                        <br>
+                        <span id="tempoRimanente" style="font-size: 1.8em;">
+
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <button class="btn btn-primary btn-slider" onclick="indietroDomanda();">
+                            &lt;
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(0)">1</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(1)">2</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(2)">3</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(3)">4</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(4)">5</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(5)">6</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(6)">7</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(7)">8</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(8)">9</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-slider" onclick="caricaDomanda(9)">10</button>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary btn-slider" onclick="avanzaDomanda();">
+                            &gt;
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <script>for (let i = 1; i <= 10; i++) {
+                            let buffScrittura = "<td>";
+                            buffScrittura += "<span id=\"punti" + i + "\" class=\"badge badge-info\" style=\"display: none\"></span>";
+                            buffScrittura += "</td>";
+                            document.write(buffScrittura);
+                        }</script>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <script>for (let i = 0; i < NDOMANDE; i++) {
+                            let risUtenteLocale = "<td class='risposte-utente'><span id='risUtente" + i + "' class='badge badge-success'></span></td>";
+                            document.write(risUtenteLocale);
+                        }</script>
+                    <td></td>
+                </tr>
+            </table>
+        <form name="test">
+            <h3 style="padding-top: 10px;">Quesito n. <span id="nQuesito">1</span></h3>
+            <p class="nonrispondo">
+                <button type="button" id="nonRispondo" class="btn btn-secondary btn-sm">
+                    Non rispondo
+                </button>
+            </p>
+            <div class="testo">
+                <p id="testoDomanda" onchange="">
+                    Testo della domanda
+                </p>
+            </div>
+            <table class=" tab-risposte">
+                <tr>
+                    <td>
+                        <span id="cas1"></span>
+                    </td>
+                    <td id="ris1">Risposta 1</td>
+                </tr>
+                <tr>
+                    <td>
+                        <span id="cas2"></span>
+                    </td>
+                    <td id="ris2">Risposta 2</td>
+                </tr>
+                <tr>
+                    <td>
+                        <span id="cas3"></span>
+                    </td>
+                    <td id="ris3">Risposta 3</td>
+                </tr>
+                <tr>
+                    <td>
+                        <span id="cas4"></span>
+                    </td>
+                    <td id="ris4">Risposta 4</td>
+                </tr>
+                <tr>
+                    <td>
+                        <span id="cas5"></span>
+                    </td>
+                    <td id="ris5">Risposta 5</td>
+                </tr>
+            </table>
+        </form>
+    </div>
+    <p class="valuta">
+        <button type="button" class="btn btn-light" id="btnConferma">
+            ✔ Conferma e vai alla successiva
+        </button>
+    </p>
+    <div class="modal" id="dialogo">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Esito del test</h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body" id="visore"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="benvenuto">
+        <form name="nominativo">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Benvenuto!</h4>
+                        <button type="submit" class="close" data-dismiss="modal">
+                            &times;
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        Benvenuto! Cliccando Inizia, potrai dare avvio al test.<br><br>
+                        <p>
+                            Prima di iniziare, immetti il tuo nome e cognome (tali dati non verranno memorizzati al
+                            di
+                            fuori del tuo dispositivo. Sono mostrati nella pagina a scopo dimostrativo)
+                        </p>
+
+                        <table style="border: 0px;">
+                            <tr>
+                                <td style="float: right; font-weight: 900;">
+                                    Nome:
+                                </td>
+                                <td>
+                                    <input type="text" name="nome" required />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="float: right; font-weight: 900;">
+                                    Cognome:
+                                </td>
+                                <td>
+                                    <input type="text" name="cognome" required />
+                                </td>
+                            </tr>
+                        </table>
+                        <br>
+                        Per rispondere ai 10 quesiti proposti, <strong>estratti in maniera casuale</strong>, avrai a
+                        disposizione 30 minuti.<br>
+                        Potrai terminare il questionario quando giungerai all'ultima domanda.<br>
+                        Trattandosi di un test di autovalutazione, il tempo indicato non è un limite improrogabile
+                        di
+                        consegna del test e potrai continuare ad accedere alle domande anche dopo lo scadere del
+                        tempo.
+                        <br>Esso è utile in preparazione al reale test di ammissione, in cui il tempo è limitato e
+                        la
+                        sua
+                        considerazione (in questo caso) è pertanto a discrezione dell'utente.<br>
+                        Alla destra di ogni quesito, trovi il tasto "Non rispondo", per scegliere di omettere la
+                        risposta per una specifica domanda (verifica
+                        che in alto venga contrassegnata da "I" (indeterminata)).<br>
+                        Al termine del test, contestualmente alla comunicazione del risultato, potrai comunque
+                        continuare ad avere accesso alle risposte date e potrai visualizzare le soluzioni per tutte
+                        le
+                        domande, attraverso l'apposito link.<br>
+                        <strong>
+                            Attenzione: si consiglia di ripetere il test almeno 3 volte, dato che i quesiti
+                            vengono
+                            estratti
+                            in maniera casuale.
+                        </strong><br><br>
+                        Buon lavoro!
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary" data-dismiss="modal">
+                            INIZIA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal" id="tempoScaduto">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Tempo scaduto!</h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <strong>Il tempo è scaduto!</strong> <br>Puoi comunque procedere a modificare e visualizzare le
+                    domande, se non
+                    hai
+                    ancora terminato il questionario.<br>
+                    Al termine, potrai confermare le tue risposte raggiunta l'ultima domanda.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</body>
+</html>
